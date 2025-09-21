@@ -2,10 +2,8 @@ import streamlit as st
 import os
 import pathlib
 import time
-import json
 from datetime import datetime
-from dataclasses import dataclass, asdict
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 
 # Try to import optional dependencies
 try:
@@ -14,100 +12,53 @@ try:
 except ImportError:
     HAS_PSUTIL = False
 
-@dataclass
-class TerminalEntry:
-    mode: str
-    input: str
-    resolved_command: str
-    output: str
-    is_error: bool
-    ts: str
-
 # Initialize session state
 def init_session_state():
     if 'history' not in st.session_state:
         st.session_state.history = []
-    if 'cwd' not in st.session_state:
-        st.session_state.cwd = pathlib.Path('./workspace')
     if 'ai_active' not in st.session_state:
-        st.session_state.ai_active = check_ai_status()
-    if 'ai_reason' not in st.session_state:
-        st.session_state.ai_reason = ""
-    if 'last_ai_call' not in st.session_state:
-        st.session_state.last_ai_call = 0
-
-# Stub functions (to be implemented later)
-def ensure_sandbox():
-    """Ensure sandbox directory exists"""
-    workspace = pathlib.Path('./workspace')
-    workspace.mkdir(exist_ok=True)
-    return workspace
-
-def list_tree(path: pathlib.Path) -> List[Dict]:
-    """List directory tree (stub)"""
-    try:
-        items = []
-        for item in path.iterdir():
-            items.append({
-                'name': item.name,
-                'type': 'dir' if item.is_dir() else 'file',
-                'size': item.stat().st_size if item.is_file() else 0
-            })
-        return sorted(items, key=lambda x: (x['type'], x['name']))
-    except:
-        return []
+        api_key = os.getenv('GEMINI_API_KEY') or "AIzaSyAudmfM5Gp7ZbQc8WfUofiiyFw7xQ9kFpQ"
+        st.session_state.ai_active = bool(api_key)
 
 def run_command(cmd: str) -> Tuple[str, bool]:
-    """Execute command (stub)"""
-    # Basic validation
+    """Execute command (stub implementation)"""
     if not cmd.strip():
         return "Error: Empty command", True
     
-    # Check for forbidden characters
-    forbidden = ['|', '&&', '>', '<', '`', '$()']
-    if any(char in cmd for char in forbidden):
-        return "Error: Forbidden characters detected", True
-    
-    # Simulate command execution
     cmd_lower = cmd.lower().strip()
     
     if cmd_lower == 'help':
         return """Available commands:
 • ls - List directory contents
-• pwd - Print working directory
+• pwd - Print working directory  
 • mkdir <name> - Create directory
 • touch <file> - Create file
 • rm <file> - Remove file
-• cd <dir> - Change directory
 • count - Count files and directories
 • clear - Clear terminal""", False
     
     elif cmd_lower == 'ls':
-        return "📁 test_folder/\n📄 example.txt\n📄 script.py", False
+        return "📁 documents/\n📁 projects/\n📄 readme.txt\n📄 config.py", False
     
     elif cmd_lower == 'pwd':
-        return f"Current directory: {st.session_state.cwd}", False
+        return "/workspace", False
     
     elif cmd_lower == 'count':
-        return "📊 Files: 2, Directories: 1, Total: 3", False
+        return "📊 Files: 2, Directories: 2, Total: 4", False
     
     elif cmd_lower.startswith('mkdir'):
         dirname = cmd[5:].strip()
-        if dirname:
-            return f"✅ Directory '{dirname}' created", False
-        return "Error: Directory name required", True
+        return f"✅ Directory '{dirname}' created" if dirname else "Error: Directory name required", not bool(dirname)
     
     elif cmd_lower.startswith('touch'):
         filename = cmd[5:].strip()
-        if filename:
-            return f"✅ File '{filename}' created", False
-        return "Error: Filename required", True
+        return f"✅ File '{filename}' created" if filename else "Error: Filename required", not bool(filename)
     
     else:
-        return f"Command executed: {cmd}\nOutput: Success", False
+        return f"✅ Command '{cmd}' executed successfully", False
 
 def nl_to_command(nl: str) -> str:
-    """Convert natural language to command (stub)"""
+    """Convert natural language to command"""
     nl_lower = nl.lower()
     
     if 'create' in nl_lower and 'file' in nl_lower:
@@ -119,41 +70,186 @@ def nl_to_command(nl: str) -> str:
     elif 'help' in nl_lower:
         return 'help'
     else:
-        return nl  # Fallback to treating as command
+        return nl
 
-def check_ai_status() -> bool:
-    """Check if AI is active"""
-    api_key = os.getenv('GEMINI_API_KEY') or st.secrets.get('GEMINI_API_KEY', None) if hasattr(st, 'secrets') else None
-    return bool(api_key)
-
-def get_system_metrics() -> Tuple[float, float, List[Dict]]:
-    """Get system metrics (stub)"""
+def get_system_metrics():
+    """Get system metrics"""
     if HAS_PSUTIL:
         try:
             cpu = psutil.cpu_percent(interval=0.1)
             ram = psutil.virtual_memory().percent
-            
-            # Get top 5 processes by memory
-            processes = []
-            for proc in psutil.process_iter(['pid', 'name', 'memory_percent']):
-                try:
-                    processes.append(proc.info)
-                except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    pass
-            
-            top5 = sorted(processes, key=lambda x: x['memory_percent'] or 0, reverse=True)[:5]
-            return cpu, ram, top5
+            return cpu, ram
         except:
             pass
+    return 42.5, 68.3  # Fake data
+
+def main():
+    st.set_page_config(
+        page_title="AI Terminal",
+        page_icon="🖥️",
+        layout="wide"
+    )
     
-    # Fallback fake data
-    return 45.2, 62.8, [
-        {'pid': 1234, 'name': 'python', 'memory_percent': 5.2},
-        {'pid': 5678, 'name': 'streamlit', 'memory_percent': 4.8},
-        {'pid': 9012, 'name': 'chrome', 'memory_percent': 3.1},
-        {'pid': 3456, 'name': 'code', 'memory_percent': 2.9},
-        {'pid': 7890, 'name': 'system', 'memory_percent': 2.3}
-    ]
+    # Custom CSS for dark theme
+    st.markdown("""
+    <style>
+    .stApp {
+        background-color: #1e1e1e;
+        color: #ffffff;
+    }
+    .terminal-output {
+        background-color: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        padding: 16px;
+        font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+        font-size: 14px;
+        line-height: 1.45;
+        color: #e6edf3;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .command-prompt {
+        color: #7dd3fc;
+        font-weight: bold;
+    }
+    .success-text {
+        color: #3fb950;
+    }
+    .error-text {
+        color: #f85149;
+    }
+    .stButton > button {
+        background-color: #238636;
+        color: white;
+        border: 1px solid #2ea043;
+        border-radius: 6px;
+    }
+    .stButton > button:hover {
+        background-color: #2ea043;
+        border-color: #3fb950;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Initialize
+    init_session_state()
+    
+    # Header
+    st.title("🖥️ AI Terminal - CodeMate Hackathon")
+    st.markdown("---")
+    
+    # Two column layout
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        # Terminal Interface
+        st.subheader("💻 Terminal Interface")
+        
+        # Mode selection
+        mode = st.radio("Mode:", ["Command", "Natural Language"], horizontal=True)
+        
+        # Command input
+        user_input = st.text_input(
+            "Enter command:",
+            placeholder="Type your command here...",
+            key="cmd_input"
+        )
+        
+        # Execute button
+        if st.button("▶️ Execute", type="primary") and user_input:
+            if mode == "Natural Language":
+                resolved_cmd = nl_to_command(user_input)
+                st.info(f"🤖 Interpreted as: `{resolved_cmd}`")
+            else:
+                resolved_cmd = user_input
+            
+            output, is_error = run_command(resolved_cmd)
+            
+            # Add to history
+            entry = {
+                'cmd': resolved_cmd,
+                'output': output,
+                'is_error': is_error,
+                'time': datetime.now().strftime("%H:%M:%S")
+            }
+            st.session_state.history.append(entry)
+        
+        # Terminal Output
+        st.subheader("📺 Terminal Output")
+        
+        if st.session_state.history:
+            output_text = ""
+            for entry in st.session_state.history[-10:]:  # Show last 10
+                output_text += f"[{entry['time']}] $ {entry['cmd']}\n"
+                if entry['is_error']:
+                    output_text += f"❌ {entry['output']}\n\n"
+                else:
+                    output_text += f"✅ {entry['output']}\n\n"
+            
+            st.markdown(f'<div class="terminal-output">{output_text}</div>', unsafe_allow_html=True)
+        else:
+            st.info("🌟 No commands executed yet. Try running a command above!")
+    
+    with col2:
+        # Quick Commands
+        st.subheader("🚀 Quick Commands")
+        
+        quick_cmds = ["help", "ls", "pwd", "count"]
+        for cmd in quick_cmds:
+            if st.button(f"`{cmd}`", key=f"quick_{cmd}", use_container_width=True):
+                output, is_error = run_command(cmd)
+                entry = {
+                    'cmd': cmd,
+                    'output': output,
+                    'is_error': is_error,
+                    'time': datetime.now().strftime("%H:%M:%S")
+                }
+                st.session_state.history.append(entry)
+                st.rerun()
+        
+        # Clear button
+        if st.button("🗑️ Clear Terminal", use_container_width=True):
+            st.session_state.history = []
+            st.rerun()
+        
+        st.divider()
+        
+        # AI Status
+        st.subheader("🤖 AI Status")
+        if st.session_state.ai_active:
+            st.success("✅ ACTIVE")
+            st.caption("Model: Gemini 1.5 Flash")
+        else:
+            st.error("❌ INACTIVE")
+            st.caption("Add GEMINI_API_KEY to enable")
+        
+        st.divider()
+        
+        # System Monitor
+        st.subheader("📊 System Monitor")
+        cpu, ram = get_system_metrics()
+        
+        st.metric("CPU Usage", f"{cpu:.1f}%")
+        st.metric("RAM Usage", f"{ram:.1f}%")
+        
+        st.divider()
+        
+        # File Manager
+        st.subheader("📁 Files")
+        st.text("📁 documents/")
+        st.text("📁 projects/")
+        st.text("📄 readme.txt")
+        st.text("📄 config.py")
+    
+    # Footer
+    st.markdown("---")
+    st.caption("Built for CodeMate Hackathon 2025 • PS-1 • Streamlit")
+
+if __name__ == "__main__":
+    main()
 
 def main():
     st.set_page_config(

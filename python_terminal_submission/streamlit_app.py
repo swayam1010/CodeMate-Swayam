@@ -180,8 +180,6 @@ def main():
                     }
                     st.session_state.history.append(entry)
                     
-                    # Clear input
-                    st.session_state.user_input = ""
                     st.rerun()
         
         with col_clear:

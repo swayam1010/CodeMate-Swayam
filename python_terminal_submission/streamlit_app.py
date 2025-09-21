@@ -616,123 +616,220 @@ Command:"""
 def main():
     st.set_page_config(
         page_title="AI Terminal",
-        page_icon="🚀",
-        layout="wide",
+        page_icon="⚡",
+        layout="centered",
         initial_sidebar_state="collapsed"
     )
     
-    # Custom CSS for modern, minimal design
+    # Custom CSS for minimal, elegant design
     st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
     .stApp {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: #fafbfc;
     }
+    
     .main-container {
-        background: white;
-        border-radius: 20px;
-        padding: 2rem;
-        margin: 1rem;
-        box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        backdrop-filter: blur(10px);
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1rem;
     }
+    
     .terminal-header {
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 3rem;
+        padding: 2rem 0;
     }
+    
     .terminal-title {
-        font-size: 3rem;
+        font-size: 2.5rem;
         font-weight: 700;
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: #1a1a1a;
         margin-bottom: 0.5rem;
+        letter-spacing: -0.02em;
     }
+    
     .terminal-subtitle {
-        color: #666;
+        color: #6b7280;
         font-size: 1.1rem;
         font-weight: 400;
+        margin-bottom: 0;
     }
+    
     .command-section {
-        background: #f8f9fa;
-        border-radius: 15px;
-        padding: 1.5rem;
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
         margin: 2rem 0;
-        border: 1px solid #e9ecef;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
+    
     .terminal-output {
-        background: #1e1e1e;
-        border-radius: 15px;
+        background: #0f1419;
+        border-radius: 12px;
         padding: 1.5rem;
         margin: 2rem 0;
-        min-height: 400px;
-        max-height: 600px;
+        min-height: 300px;
+        max-height: 500px;
         overflow-y: auto;
-        font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+        font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        border: 1px solid #e5e7eb;
     }
+    
     .output-line {
-        margin-bottom: 0.5rem;
-        line-height: 1.4;
+        margin-bottom: 0.25rem;
+        padding: 0.125rem 0;
     }
+    
     .command-line {
-        color: #00ff00;
-        font-weight: bold;
+        color: #7dd3fc;
+        font-weight: 600;
     }
+    
     .success-line {
-        color: #28a745;
+        color: #34d399;
     }
+    
     .error-line {
-        color: #dc3545;
+        color: #f87171;
     }
+    
     .info-line {
-        color: #17a2b8;
+        color: #60a5fa;
     }
+    
     .ai-line {
-        color: #6c5ce7;
+        color: #a78bfa;
     }
+    
+    .default-line {
+        color: #d1d5db;
+    }
+    
+    .stButton > button {
+        background: #111827;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        border: 1px solid #374151;
+    }
+    
+    .stButton > button:hover {
+        background: #1f2937;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .stButton > button:active {
+        transform: translateY(0);
+    }
+    
+    .stTextInput > div > div > input {
+        border-radius: 8px;
+        border: 2px solid #e5e7eb;
+        padding: 0.875rem 1rem;
+        font-size: 0.95rem;
+        background: white;
+        transition: border-color 0.2s ease;
+    }
+    
+    .stTextInput > div > div > input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        outline: none;
+    }
+    
+    .quick-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin: 1rem 0 2rem 0;
+        flex-wrap: wrap;
+    }
+    
+    .status-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin: 1rem 0;
+    }
+    
+    .status-success {
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #d1fae5;
+    }
+    
+    .status-warning {
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fed7aa;
+    }
+    
     .footer-section {
         text-align: center;
         margin-top: 3rem;
-        padding-top: 2rem;
-        border-top: 1px solid #e9ecef;
-        color: #666;
+        padding: 2rem 0;
+        color: #6b7280;
+        font-size: 0.9rem;
     }
-    .stButton > button {
-        background: linear-gradient(45deg, #667eea, #764ba2);
-        color: white;
-        border: none;
-        border-radius: 25px;
-        padding: 0.5rem 2rem;
+    
+    .welcome-message {
+        background: #0f1419;
+        border-radius: 12px;
+        padding: 2rem;
+        text-align: center;
+        border: 1px solid #e5e7eb;
+    }
+    
+    .welcome-title {
+        color: #60a5fa;
+        font-size: 1.1rem;
         font-weight: 600;
-        transition: all 0.3s ease;
+        margin-bottom: 1rem;
     }
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    
+    .welcome-examples {
+        color: #d1d5db;
+        font-size: 0.9rem;
+        line-height: 1.6;
     }
-    .stTextInput > div > div > input {
-        border-radius: 15px;
-        border: 2px solid #e9ecef;
-        padding: 1rem;
-        font-size: 1rem;
+    
+    .example-command {
+        color: #34d399;
+        font-family: 'SF Mono', 'Monaco', monospace;
+        font-weight: 500;
     }
-    .stTextInput > div > div > input:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-    .quick-action {
-        display: inline-block;
-        background: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 20px;
-        padding: 0.5rem 1rem;
-        margin: 0.25rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-    .quick-action:hover {
-        background: #667eea;
-        color: white;
-        transform: translateY(-1px);
+    
+    /* Hide Streamlit elements */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    .stDeployButton {display: none;}
+    
+    /* Responsive design */
+    @media (max-width: 768px) {
+        .terminal-title {
+            font-size: 2rem;
+        }
+        .command-section {
+            padding: 1.5rem;
+        }
+        .terminal-output {
+            font-size: 0.85rem;
+        }
     }
     </style>
     """, unsafe_allow_html=True)
@@ -746,41 +843,40 @@ def main():
     # Header section
     st.markdown("""
     <div class="terminal-header">
-        <h1 class="terminal-title">🚀 AI Terminal</h1>
-        <p class="terminal-subtitle">Modern web terminal with intelligent natural language processing</p>
+        <h1 class="terminal-title">⚡ AI Terminal</h1>
+        <p class="terminal-subtitle">Intelligent command line with natural language processing</p>
     </div>
     """, unsafe_allow_html=True)
     
     # Command input section
     st.markdown('<div class="command-section">', unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([6, 2, 2])
+    # Command input
+    command_input = st.text_input(
+        "",
+        placeholder="Type a command or ask in natural language...",
+        key="command_input",
+        label_visibility="collapsed"
+    )
+    
+    # Action buttons
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 6])
     
     with col1:
-        command_input = st.text_input(
-            "",
-            placeholder="Type a command or ask in natural language: 'create a file called test.py'",
-            key="command_input",
-            label_visibility="collapsed"
-        )
-    
-    with col2:
         execute_btn = st.button("Execute", type="primary", use_container_width=True)
     
-    with col3:
+    with col2:
         clear_btn = st.button("Clear", use_container_width=True)
     
-    if clear_btn:
-        st.session_state.terminal_output = []
-        st.rerun()
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+    with col3:
+        help_btn = st.button("Help", use_container_width=True)
     
     # Quick actions
-    st.markdown("**Quick Actions:**")
-    quick_actions = ["help", "ls", "count", "pwd"]
+    st.markdown("**Quick Commands:**")
     
+    quick_actions = ["ls", "count", "pwd", "help"]
     cols = st.columns(len(quick_actions))
+    
     for i, action in enumerate(quick_actions):
         with cols[i]:
             if st.button(f"`{action}`", key=f"quick_{action}", use_container_width=True):
@@ -790,58 +886,84 @@ def main():
                     st.session_state.terminal_output.append(result)
                 st.rerun()
     
-    # Execute command
-    if execute_btn and command_input:
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Handle button actions
+    if clear_btn:
+        st.session_state.terminal_output = []
+        st.rerun()
+    
+    if help_btn:
+        result = terminal.cmd_help()
+        st.session_state.terminal_output.append("$ help")
+        st.session_state.terminal_output.append(result)
+        st.rerun()
+    
+    if execute_btn and command_input.strip():
         result = terminal.execute_command(command_input)
         if result:
             st.session_state.terminal_output.append(f"$ {command_input}")
             st.session_state.terminal_output.append(result)
         st.rerun()
     
-    # Terminal output
+    # Terminal output section
     st.markdown("### Terminal Output")
     
     if st.session_state.terminal_output:
         output_html = '<div class="terminal-output">'
+        
         for line in st.session_state.terminal_output:
-            if line.startswith("$"):
-                output_html += f'<div class="output-line command-line">{line}</div>'
-            elif line.startswith("✅") or "success" in line.lower():
-                output_html += f'<div class="output-line success-line">{line}</div>'
-            elif line.startswith("❌") or line.startswith("⚠️") or "error" in line.lower():
-                output_html += f'<div class="output-line error-line">{line}</div>'
-            elif line.startswith("🤖") or "AI:" in line:
-                output_html += f'<div class="output-line ai-line">{line}</div>'
-            elif line.startswith("📊") or line.startswith("📄") or line.startswith("📁"):
-                output_html += f'<div class="output-line info-line">{line}</div>'
+            line_str = str(line)
+            
+            if line_str.startswith("$"):
+                output_html += f'<div class="output-line command-line">{line_str}</div>'
+            elif line_str.startswith("✅") or "success" in line_str.lower():
+                output_html += f'<div class="output-line success-line">{line_str}</div>'
+            elif line_str.startswith("❌") or line_str.startswith("⚠️") or "error" in line_str.lower():
+                output_html += f'<div class="output-line error-line">{line_str}</div>'
+            elif line_str.startswith("🤖") or "AI:" in line_str:
+                output_html += f'<div class="output-line ai-line">{line_str}</div>'
+            elif line_str.startswith("📊") or line_str.startswith("📄") or line_str.startswith("📁"):
+                output_html += f'<div class="output-line info-line">{line_str}</div>'
             else:
-                # Handle markdown formatting
-                line_html = line.replace("**", "<strong>").replace("**", "</strong>")
-                line_html = line_html.replace("*", "<em>").replace("*", "</em>")
-                output_html += f'<div class="output-line">{line_html}</div>'
+                # Clean HTML and preserve formatting
+                clean_line = line_str.replace("**", "<strong>").replace("*", "<em>")
+                clean_line = clean_line.replace("\n", "<br>")
+                output_html += f'<div class="output-line default-line">{clean_line}</div>'
+        
         output_html += '</div>'
         st.markdown(output_html, unsafe_allow_html=True)
     else:
         st.markdown("""
-        <div class="terminal-output">
-            <div class="output-line info-line">🌟 Welcome to AI Terminal!</div>
-            <div class="output-line">Try commands like:</div>
-            <div class="output-line">• <span class="success-line">"create a file called test.py"</span></div>
-            <div class="output-line">• <span class="success-line">"show me the files"</span></div>
-            <div class="output-line">• <span class="success-line">"help"</span> for all commands</div>
+        <div class="welcome-message">
+            <div class="welcome-title">👋 Welcome to AI Terminal</div>
+            <div class="welcome-examples">
+                Try these commands:<br><br>
+                <span class="example-command">"create a file called test.py"</span><br>
+                <span class="example-command">"show me the files"</span><br>
+                <span class="example-command">"help"</span> - for all available commands
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
     # AI Status indicator
     if terminal.ai_enabled:
-        st.success("🤖 AI Natural Language Processing: **ACTIVE**")
+        st.markdown("""
+        <div class="status-indicator status-success">
+            <span>🤖 AI Natural Language Processing: <strong>ACTIVE</strong></span>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.warning("⚠️ AI using fallback patterns - Add GEMINI_API_KEY for full AI features")
+        st.markdown("""
+        <div class="status-indicator status-warning">
+            <span>⚠️ Using fallback patterns - Add GEMINI_API_KEY for full AI features</span>
+        </div>
+        """, unsafe_allow_html=True)
     
     # Footer
     st.markdown("""
     <div class="footer-section">
-        <p>🏆 Built for <strong>CodeMate Hackathon 2025</strong> | 🚀 Modern AI-Powered Terminal</p>
+        <p>🏆 Built for <strong>CodeMate Hackathon 2025</strong> • Modern AI Terminal</p>
     </div>
     """, unsafe_allow_html=True)
     

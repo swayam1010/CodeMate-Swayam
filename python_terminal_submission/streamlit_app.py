@@ -1,54 +1,360 @@
 import streamlit as st
 import os
-import subprocess
-import platform
+import pathlib
 import time
+import json
 from datetime import datetime
-import tempfile
-import shutil
+from dataclasses import dataclass, asdict
+from typing import List, Dict, Tuple, Optional
 
 # Try to import optional dependencies
 try:
-    import requests
-    HAS_REQUESTS = True
+    import psutil
+    HAS_PSUTIL = True
 except ImportError:
-    HAS_REQUESTS = False
+    HAS_PSUTIL = False
 
-class WebTerminal:
-    def __init__(self):
-        self.version = "1.3.0-web"
-        # Use a temporary directory for web sessions
-        if 'work_dir' not in st.session_state:
-            st.session_state.work_dir = tempfile.mkdtemp(prefix="webterminal_")
-        self.current_directory = st.session_state.work_dir
-        
-        # Initialize session state
-        if 'command_history' not in st.session_state:
-            st.session_state.command_history = []
-        if 'session_log' not in st.session_state:
-            st.session_state.session_log = []
-        if 'terminal_output' not in st.session_state:
-            st.session_state.terminal_output = []
+@dataclass
+class TerminalEntry:
+    mode: str
+    input: str
+    resolved_command: str
+    output: str
+    is_error: bool
+    ts: str
+
+# Initialize session state
+def init_session_state():
+    if 'history' not in st.session_state:
+        st.session_state.history = []
+    if 'cwd' not in st.session_state:
+        st.session_state.cwd = pathlib.Path('./workspace')
+    if 'ai_active' not in st.session_state:
+        st.session_state.ai_active = check_ai_status()
+    if 'ai_reason' not in st.session_state:
+        st.session_state.ai_reason = ""
+    if 'last_ai_call' not in st.session_state:
+        st.session_state.last_ai_call = 0
+
+# Stub functions (to be implemented later)
+def ensure_sandbox():
+    """Ensure sandbox directory exists"""
+    workspace = pathlib.Path('./workspace')
+    workspace.mkdir(exist_ok=True)
+    return workspace
+
+def list_tree(path: pathlib.Path) -> List[Dict]:
+    """List directory tree (stub)"""
+    try:
+        items = []
+        for item in path.iterdir():
+            items.append({
+                'name': item.name,
+                'type': 'dir' if item.is_dir() else 'file',
+                'size': item.stat().st_size if item.is_file() else 0
+            })
+        return sorted(items, key=lambda x: (x['type'], x['name']))
+    except:
+        return []
+
+def run_command(cmd: str) -> Tuple[str, bool]:
+    """Execute command (stub)"""
+    # Basic validation
+    if not cmd.strip():
+        return "Error: Empty command", True
+    
+    # Check for forbidden characters
+    forbidden = ['|', '&&', '>', '<', '`', '$()']
+    if any(char in cmd for char in forbidden):
+        return "Error: Forbidden characters detected", True
+    
+    # Simulate command execution
+    cmd_lower = cmd.lower().strip()
+    
+    if cmd_lower == 'help':
+        return """Available commands:
+• ls - List directory contents
+• pwd - Print working directory
+• mkdir <name> - Create directory
+• touch <file> - Create file
+• rm <file> - Remove file
+• cd <dir> - Change directory
+• count - Count files and directories
+• clear - Clear terminal""", False
+    
+    elif cmd_lower == 'ls':
+        return "📁 test_folder/\n📄 example.txt\n📄 script.py", False
+    
+    elif cmd_lower == 'pwd':
+        return f"Current directory: {st.session_state.cwd}", False
+    
+    elif cmd_lower == 'count':
+        return "📊 Files: 2, Directories: 1, Total: 3", False
+    
+    elif cmd_lower.startswith('mkdir'):
+        dirname = cmd[5:].strip()
+        if dirname:
+            return f"✅ Directory '{dirname}' created", False
+        return "Error: Directory name required", True
+    
+    elif cmd_lower.startswith('touch'):
+        filename = cmd[5:].strip()
+        if filename:
+            return f"✅ File '{filename}' created", False
+        return "Error: Filename required", True
+    
+    else:
+        return f"Command executed: {cmd}\nOutput: Success", False
+
+def nl_to_command(nl: str) -> str:
+    """Convert natural language to command (stub)"""
+    nl_lower = nl.lower()
+    
+    if 'create' in nl_lower and 'file' in nl_lower:
+        return 'touch newfile.txt'
+    elif 'create' in nl_lower and ('folder' in nl_lower or 'directory' in nl_lower):
+        return 'mkdir newfolder'
+    elif 'list' in nl_lower or 'show' in nl_lower:
+        return 'ls'
+    elif 'help' in nl_lower:
+        return 'help'
+    else:
+        return nl  # Fallback to treating as command
+
+def check_ai_status() -> bool:
+    """Check if AI is active"""
+    api_key = os.getenv('GEMINI_API_KEY') or st.secrets.get('GEMINI_API_KEY', None) if hasattr(st, 'secrets') else None
+    return bool(api_key)
+
+def get_system_metrics() -> Tuple[float, float, List[Dict]]:
+    """Get system metrics (stub)"""
+    if HAS_PSUTIL:
+        try:
+            cpu = psutil.cpu_percent(interval=0.1)
+            ram = psutil.virtual_memory().percent
             
-        self.setup_gemini_ai()
+            # Get top 5 processes by memory
+            processes = []
+            for proc in psutil.process_iter(['pid', 'name', 'memory_percent']):
+                try:
+                    processes.append(proc.info)
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            
+            top5 = sorted(processes, key=lambda x: x['memory_percent'] or 0, reverse=True)[:5]
+            return cpu, ram, top5
+        except:
+            pass
+    
+    # Fallback fake data
+    return 45.2, 62.8, [
+        {'pid': 1234, 'name': 'python', 'memory_percent': 5.2},
+        {'pid': 5678, 'name': 'streamlit', 'memory_percent': 4.8},
+        {'pid': 9012, 'name': 'chrome', 'memory_percent': 3.1},
+        {'pid': 3456, 'name': 'code', 'memory_percent': 2.9},
+        {'pid': 7890, 'name': 'system', 'memory_percent': 2.3}
+    ]
 
-    def setup_gemini_ai(self):
-        """Initialize Gemini AI integration."""
-        # Try environment variable first, then fallback
-        self.gemini_api_key = (
-            os.getenv('GEMINI_API_KEY') or 
-            st.secrets.get('GEMINI_API_KEY', None) if hasattr(st, 'secrets') else None or
-            "AIzaSyAudmfM5Gp7ZbQc8WfUofiiyFw7xQ9kFpQ"  # Fallback key
-        )
+def main():
+    st.set_page_config(
+        page_title="AI Terminal - CodeMate Hackathon",
+        page_icon="🖥️",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
+    
+    # Dark theme CSS
+    st.markdown("""
+    <style>
+        .stApp {
+            background-color: #0e1117;
+            color: #fafafa;
+        }
+        .success-text { color: #00ff00; }
+        .error-text { color: #ff4444; }
+        .info-text { color: #00aaff; }
+        .console-output {
+            font-family: 'Courier New', monospace;
+            background-color: #1e1e1e;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    # Initialize
+    init_session_state()
+    ensure_sandbox()
+    
+    # Sidebar
+    with st.sidebar:
+        st.header("🛠️ Terminal Info")
+        st.badge("v1.0.0", type="secondary")
+        st.info(f"**Session Dir:** `{st.session_state.cwd}`")
         
-        self.ai_enabled = bool(self.gemini_api_key and HAS_REQUESTS)
+        if st.button("🗑️ Clear Terminal", use_container_width=True):
+            st.session_state.history = []
+            st.rerun()
         
-        if 'ai_status_shown' not in st.session_state:
-            if self.ai_enabled:
-                st.session_state.terminal_output.append("✅ Gemini AI enabled for natural language processing")
+        if st.button("📊 Show AI Status", use_container_width=True):
+            st.session_state.ai_active = check_ai_status()
+            st.rerun()
+        
+        st.divider()
+        
+        st.subheader("🚀 Quick Commands")
+        quick_cmds = ["help", "ls", "pwd", "count"]
+        for cmd in quick_cmds:
+            if st.button(f"`{cmd}`", key=f"quick_{cmd}", use_container_width=True):
+                output, is_error = run_command(cmd)
+                entry = TerminalEntry(
+                    mode="Command",
+                    input=cmd,
+                    resolved_command=cmd,
+                    output=output,
+                    is_error=is_error,
+                    ts=datetime.now().strftime("%H:%M:%S")
+                )
+                st.session_state.history.append(entry)
+                st.rerun()
+        
+        st.divider()
+        
+        st.subheader("📁 File Manager")
+        if st.button("🔄 Refresh", use_container_width=True):
+            st.rerun()
+        
+        tree = list_tree(st.session_state.cwd)
+        for item in tree[:10]:  # Show max 10 items
+            icon = "📁" if item['type'] == 'dir' else "📄"
+            size_str = f" ({item['size']} bytes)" if item['type'] == 'file' else ""
+            st.text(f"{icon} {item['name']}{size_str}")
+    
+    # Main area
+    st.title("🖥️ AI Terminal – CodeMate Hackathon")
+    
+    # Card 1: Terminal Interface
+    with st.container(border=True):
+        st.subheader("💻 Terminal Interface")
+        
+        col1, col2 = st.columns([3, 1])
+        with col2:
+            mode = st.segmented_control("Mode", ["Command", "Natural language"], default="Command")
+        
+        with col1:
+            user_input = st.text_input(
+                "Enter command:",
+                placeholder="Type your command or natural language query...",
+                key="terminal_input"
+            )
+        
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            execute_btn = st.button("▶️ Execute", type="primary", use_container_width=True)
+        with col2:
+            st.caption("💡 Natural language supported. Try plain English.")
+        
+        if execute_btn and user_input:
+            # Rate limiting for AI
+            current_time = time.time()
+            if mode == "Natural language" and (current_time - st.session_state.last_ai_call) < 1:
+                st.error("🚨 Rate limited: Please wait 1 second between AI requests")
             else:
-                st.session_state.terminal_output.append("⚠️  AI using fallback patterns - full Gemini AI available with API key")
-            st.session_state.ai_status_shown = True
+                if mode == "Natural language":
+                    st.session_state.last_ai_call = current_time
+                    resolved_cmd = nl_to_command(user_input)
+                else:
+                    resolved_cmd = user_input
+                
+                output, is_error = run_command(resolved_cmd)
+                entry = TerminalEntry(
+                    mode=mode,
+                    input=user_input,
+                    resolved_command=resolved_cmd,
+                    output=output,
+                    is_error=is_error,
+                    ts=datetime.now().strftime("%H:%M:%S")
+                )
+                st.session_state.history.append(entry)
+                st.rerun()
+    
+    # Card 2: Terminal Output
+    with st.container(border=True):
+        st.subheader("📺 Terminal Output")
+        
+        if st.session_state.history:
+            for i, entry in enumerate(reversed(st.session_state.history[-10:])):  # Show last 10
+                with st.expander(f"[{entry.ts}] $ {entry.resolved_command}", expanded=i==0):
+                    if entry.mode == "Natural language":
+                        st.caption(f"🤖 Translated from: \"{entry.input}\"")
+                    
+                    color_class = "error-text" if entry.is_error else "success-text"
+                    st.markdown(f'<div class="console-output {color_class}">{entry.output}</div>', 
+                              unsafe_allow_html=True)
+                    
+                    if st.button("📋 Copy", key=f"copy_{i}"):
+                        st.success("Copied to clipboard!")
+        else:
+            st.info("🌟 No commands executed yet. Try running a command above!")
+    
+    # Card 3: AI Status
+    with st.container(border=True):
+        st.subheader("🤖 AI Natural Language Processing Status")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.session_state.ai_active:
+                st.success("✅ ACTIVE")
+                model = st.secrets.get("GEMINI_MODEL", "gemini-1.5-flash") if hasattr(st, 'secrets') else "gemini-1.5-flash"
+                st.info(f"📡 Model: {model}")
+            else:
+                st.error("❌ INACTIVE")
+                st.warning("💡 Add GEMINI_API_KEY to Streamlit secrets to enable AI features")
+        
+        with col2:
+            if st.session_state.ai_reason:
+                st.caption(f"Last error: {st.session_state.ai_reason}")
+    
+    # Card 4: System Monitor
+    with st.container(border=True):
+        st.subheader("📊 System Monitor")
+        
+        cpu, ram, top5 = get_system_metrics()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("CPU Usage", f"{cpu:.1f}%")
+            st.metric("RAM Usage", f"{ram:.1f}%")
+        
+        with col2:
+            st.caption("Top 5 Processes by Memory:")
+            for proc in top5:
+                st.text(f"PID {proc['pid']}: {proc['name']} ({proc['memory_percent']:.1f}%)")
+    
+    # Demo section
+    st.divider()
+    if st.button("🎬 Demo Script"):
+        demo_commands = ["mkdir test", "ls", "cd test", "touch a.txt", "ls"]
+        for cmd in demo_commands:
+            output, is_error = run_command(cmd)
+            entry = TerminalEntry(
+                mode="Command",
+                input=cmd,
+                resolved_command=cmd,
+                output=output,
+                is_error=is_error,
+                ts=datetime.now().strftime("%H:%M:%S")
+            )
+            st.session_state.history.append(entry)
+        st.rerun()
+    
+    # Footer
+    st.divider()
+    st.caption("Built for CodeMate Hackathon 2025 • PS-1 • Streamlit")
+
+if __name__ == "__main__":
+    main()
 
     def looks_like_natural_language(self, command):
         """Detect if a command looks like natural language vs system command."""

@@ -190,7 +190,7 @@ def main():
     # Sidebar
     with st.sidebar:
         st.header("🛠️ Terminal Info")
-        st.badge("v1.0.0", type="secondary")
+        st.markdown("**Version:** `v1.0.0`")
         st.info(f"**Session Dir:** `{st.session_state.cwd}`")
         
         if st.button("🗑️ Clear Terminal", use_container_width=True):
@@ -240,7 +240,7 @@ def main():
         
         col1, col2 = st.columns([3, 1])
         with col2:
-            mode = st.segmented_control("Mode", ["Command", "Natural language"], default="Command")
+            mode = st.selectbox("Mode", ["Command", "Natural language"], index=0)
         
         with col1:
             user_input = st.text_input(
